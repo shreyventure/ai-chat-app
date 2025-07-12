@@ -1,127 +1,82 @@
 import { NextResponse } from "next/server";
-// import { Configuration, OpenAIApi } from "openai";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
+import Groq from "groq-sdk";
 
-export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    console.log("not authenticated!");
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-  // Save user if not exists
-  const user = await prisma.user.upsert({
-    where: { email: session.user.email },
-    update: {},
-    create: {
-      email: session.user.email,
-      name: session.user.name,
-      image: session.user.image,
-    },
+async function getGroqChatCompletion(input: string) {
+  return groq.chat.completions.create({
+    messages: [
+      {
+        role: "user",
+        content: input,
+      },
+    ],
+    model: "llama-3.3-70b-versatile",
   });
-
-  const body = await req.json();
-  const userInput = body.message;
-  const sessionId = body.sessionId;
-
-  // Store user message
-  await prisma.message.create({
-    data: {
-      text: userInput,
-      sender: "user",
-      userId: user.id,
-      chatSessionId: sessionId,
-    },
-  });
-
-  // Call OpenAI (use mock if OpenAI is still down)
-  //   const response = await openai.createChatCompletion({
-  //     model: 'gpt-3.5-turbo',
-  //     messages: [
-  //       { role: 'system', content: 'You are a helpful assistant.' },
-  //       { role: 'user', content: userInput },
-  //     ],
-  //   })
-
-  const aiReply = `Echo: ${userInput}`; // response.data.choices[0].message?.content || 'Error'
-
-  // Store AI message
-  await prisma.message.create({
-    data: {
-      text: aiReply,
-      sender: "ai",
-      userId: user.id,
-      chatSessionId: sessionId,
-    },
-  });
-
-  const delay = () => {
-    return new Promise((resolve, _reject) => {
-      setTimeout(() => {
-        resolve(NextResponse.json({ reply: aiReply }));
-      }, 2000);
-    });
-  };
-  const res = await delay();
-  return res;
 }
 
-// const openai = new OpenAIApi(
-//   new Configuration({
-//     apiKey: process.env.OPENAI_API_KEY,
-//   })
-// )
+export async function POST(req: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      console.log("not authenticated!");
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
 
-// export async function POST(req: Request) {
-//   const session = await getServerSession(authOptions)
-//   if (!session?.user?.email) {
-//     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-//   }
+    // Save user if not exists
+    const user = await prisma.user.upsert({
+      where: { email: session.user.email },
+      update: {},
+      create: {
+        email: session.user.email,
+        name: session.user.name,
+        image: session.user.image,
+      },
+    });
 
-//   const body = await req.json()
-//   const userInput = body.message
+    const body = await req.json();
+    const userInput = body.message?.trim();
+    const sessionId = body.sessionId;
 
-//   // Save user if not exists
-//   const user = await prisma.user.upsert({
-//     where: { email: session.user.email },
-//     update: {},
-//     create: {
-//       email: session.user.email,
-//       name: session.user.name,
-//       image: session.user.image,
-//     },
-//   })
+    if (!userInput || !sessionId) {
+      return NextResponse.json(
+        { error: "Missing input or sessionId" },
+        { status: 400 }
+      );
+    }
 
-//   // Store user message
-//   await prisma.message.create({
-//     data: {
-//       text: userInput,
-//       sender: 'user',
-//       userId: user.id,
-//     },
-//   })
+    const chatCompletion = await getGroqChatCompletion(userInput);
 
-//   // Call OpenAI (use mock if OpenAI is still down)
-//   const response = await openai.createChatCompletion({
-//     model: 'gpt-3.5-turbo',
-//     messages: [
-//       { role: 'system', content: 'You are a helpful assistant.' },
-//       { role: 'user', content: userInput },
-//     ],
-//   })
+    const aiReply = chatCompletion.choices[0]?.message?.content || "";
 
-//   const aiReply = response.data.choices[0].message?.content || 'Error'
+    await Promise.all([
+      prisma.message.create({
+        data: {
+          text: userInput,
+          sender: "user",
+          userId: user.id,
+          chatSessionId: sessionId,
+        },
+      }),
+      prisma.message.create({
+        data: {
+          text: aiReply,
+          sender: "ai",
+          userId: user.id,
+          chatSessionId: sessionId,
+        },
+      }),
+    ]);
 
-//   // Store AI message
-//   await prisma.message.create({
-//     data: {
-//       text: aiReply,
-//       sender: 'ai',
-//       userId: user.id,
-//     },
-//   })
-
-//   return NextResponse.json({ reply: aiReply })
-// }
+    return NextResponse.json({ reply: aiReply });
+  } catch (error) {
+    console.error("Chat route error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

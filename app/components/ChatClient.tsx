@@ -87,6 +87,7 @@ export default function ChatClient({
             </div>
           </div>
         ))}
+        {isLoadingMessage ? <p className="text-gray-400">Thinking...</p> : null}
         <div ref={messagesEndRef} />
       </div>
 
