@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import ChatClient from "../../components/ChatClient";
 import Sidebar from "@/app/components/Sidebar";
-import { SessionTitleEditor } from "@/app/components/SessionTitleEditor";
 
 export default async function ChatSessionPage({
   params,
