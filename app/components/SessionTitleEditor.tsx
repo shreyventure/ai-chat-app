@@ -35,7 +35,7 @@ export function SessionTitleEditor({
       onChange={(e) => setTitle(e.target.value)}
       onBlur={saveTitle}
       autoFocus
-      className="text-xxl font-semibold border-b border-blue-500 bg-transparent outline-none text-gray-500"
+      className="text-8xl font-semibold border-b bg-transparent outline-none text-gray-500 p-3"
     />
   ) : (
     <h1
