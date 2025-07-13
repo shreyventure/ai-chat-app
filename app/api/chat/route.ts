@@ -3,12 +3,19 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import Groq from "groq-sdk";
+import { ChatCompletionMessageParam } from "openai/resources.js";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-async function getGroqChatCompletion(input: string) {
+async function getGroqChatCompletion(formattedMessages: any, input: string) {
   return groq.chat.completions.create({
     messages: [
+      {
+        role: "system",
+        content:
+          "You're a friendly, helpful assistant who speaks casually like a human.",
+      },
+      ...formattedMessages,
       {
         role: "user",
         content: input,
@@ -48,28 +55,40 @@ export async function POST(req: Request) {
       );
     }
 
-    const chatCompletion = await getGroqChatCompletion(userInput);
+    const history = await prisma.message.findMany({
+      where: { chatSessionId: sessionId },
+      orderBy: { createdAt: "asc" },
+    });
+
+    const formattedMessages = history.map((msg) => ({
+      role: msg.sender === "user" ? "user" : "assistant",
+      content: msg.text,
+    }));
+
+    const chatCompletion = await getGroqChatCompletion(
+      formattedMessages,
+      userInput
+    );
 
     const aiReply = chatCompletion.choices[0]?.message?.content || "";
 
-    await Promise.all([
-      prisma.message.create({
-        data: {
-          text: userInput,
-          sender: "user",
-          userId: user.id,
-          chatSessionId: sessionId,
-        },
-      }),
-      prisma.message.create({
-        data: {
-          text: aiReply,
-          sender: "ai",
-          userId: user.id,
-          chatSessionId: sessionId,
-        },
-      }),
-    ]);
+    await prisma.message.create({
+      data: {
+        text: userInput,
+        sender: "user",
+        userId: user.id,
+        chatSessionId: sessionId,
+      },
+    });
+
+    await prisma.message.create({
+      data: {
+        text: aiReply,
+        sender: "ai",
+        userId: user.id,
+        chatSessionId: sessionId,
+      },
+    });
 
     return NextResponse.json({ reply: aiReply });
   } catch (error) {

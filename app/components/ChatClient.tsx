@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SessionTitleEditor } from "./SessionTitleEditor";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 type Message = {
   id: string;
@@ -22,8 +23,21 @@ export default function ChatClient({
   const [input, setInput] = useState("");
   const [isLoadingMessage, setIsLoadingMessage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: messages.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72, // Adjust based on average message height
+    overscan: 10,
+  });
 
   useEffect(() => {
+    // rowVirtualizer.scrollToIndex(messages.length - 1, {
+    //   align: "start",
+    //   behavior: "smooth",
+    // });
+    // console.log(`scrolling to: ${messages.length - 1}`);
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -65,31 +79,73 @@ export default function ChatClient({
       </div>
 
       {/* Messages area */}
-      <div
-        className="flex-1 overflow-y-auto gap-4"
-        style={{ padding: "0 10rem" }}
-      >
-        {messages.map((msg) => (
+      {messages.length === 0 ? (
+        <div className="flex-1 flex justify-center items-center">
+          <h1 className="text-gray-500">Nothing here yet.</h1>
+        </div>
+      ) : (
+        <div
+          className="flex-1 overflow-auto relative"
+          style={{ padding: "0 10rem" }}
+          ref={parentRef}
+        >
           <div
-            key={msg.id}
-            className={`my-2 flex ${
-              msg.sender === "user" ? "justify-end" : "justify-start"
-            }`}
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              position: "relative",
+            }}
           >
             <div
-              className={`px-4 py-2 rounded-lg max-w-xs ${
-                msg.sender === "user"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-200 text-gray-900"
-              }`}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${
+                  rowVirtualizer.getVirtualItems()[0]?.start ?? 0
+                }px)`,
+              }}
             >
-              {msg.text}
+              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                let msg = messages[virtualRow.index];
+                return (
+                  // ------
+                  <div
+                    key={virtualRow.key}
+                    data-index={virtualRow.index}
+                    ref={rowVirtualizer.measureElement}
+                  >
+                    <div
+                      key={msg.id}
+                      className={`my-2 flex ${
+                        msg.sender === "user" ? "justify-end" : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`px-4 py-2 rounded-lg max-w-3xl ${
+                          msg.sender === "user"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 text-gray-900"
+                        }`}
+                      >
+                        {/* <div>
+                          <p>{virtualRow.index}</p>
+                        </div> */}
+                        {msg.text}
+                      </div>
+                    </div>
+                  </div>
+                  // ------
+                );
+              })}
             </div>
           </div>
-        ))}
-        {isLoadingMessage ? <p className="text-gray-400">Thinking...</p> : null}
-        <div ref={messagesEndRef} />
-      </div>
+          {isLoadingMessage ? (
+            <p className="text-gray-400">Thinking...</p>
+          ) : null}
+          <div ref={messagesEndRef} />
+        </div>
+      )}
 
       {/* Input bar */}
 

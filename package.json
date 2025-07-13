@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.11.1",
+    "@tanstack/react-virtual": "^3.13.12",
     "groq-sdk": "^0.27.0",
     "next": "15.3.5",
     "next-auth": "^4.24.11",
