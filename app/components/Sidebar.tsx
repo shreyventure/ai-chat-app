@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import NewChatButton from "./NewChatButton";
+import SessionLink from "./SessionLink";
 
 type Session = {
   id: string;
@@ -18,27 +19,22 @@ export default function Sidebar({
   currentSessionId: string;
 }) {
   const pathname = usePathname();
-  const formattedDate = (d: string) => {
-    const date = new Date(d);
-    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-  };
 
   return (
     <div className="h-screen p-4 overflow-y-auto">
-      <h2 className="text-lg font-semibold mb-4">Your Sessions</h2>
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-lg font-semibold">Your Sessions</div>
+        <NewChatButton />
+      </div>
       <div className="space-y-2">
         {sessions.map((s) => (
-          <Link key={s.id} href={`/chat/${s.id}`}>
-            <div
-              className={`p-2 rounded cursor-pointer ${
-                s.id === currentSessionId
-                  ? "bg-blue-500 text-white"
-                  : "hover:bg-gray-400"
-              }`}
-            >
-              {s.title?.trim() ?? `Chat on ${formattedDate(s.createdAt)}`}
-            </div>
-          </Link>
+          <SessionLink
+            key={s.id}
+            id={s.id}
+            createdAt={s.createdAt}
+            currentSessionId={currentSessionId}
+            title={s.title}
+          />
         ))}
       </div>
     </div>

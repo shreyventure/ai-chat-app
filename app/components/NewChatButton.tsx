@@ -15,9 +15,9 @@ export default function NewChatButton() {
   return (
     <button
       onClick={createNewChat}
-      className="bg-green-500 text-white px-4 py-2 rounded"
+      className="bg-gray-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-gray-300"
     >
-      + New Chat
+      New Chat
     </button>
   );
 }
