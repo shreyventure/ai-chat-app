@@ -27,3 +27,20 @@ export async function GET(
 
   return NextResponse.json(session);
 }
+
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = await params;
+    console.log(id);
+    const session = await prisma.chatSession.delete({
+      where: { id },
+    });
+
+    return NextResponse.json(session);
+  } catch (error) {
+    return NextResponse.error();
+  }
+}
