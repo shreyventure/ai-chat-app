@@ -16,6 +16,8 @@ export default async function ChatSessionPage({
     redirect("/");
   }
 
+  const { sessionId } = await params;
+
   const dbUser = await prisma.user.findUnique({
     where: { email: session.user.email },
   });
@@ -27,9 +29,11 @@ export default async function ChatSessionPage({
     ...s,
     createdAt: s.createdAt.toISOString(),
   }));
-  const { sessionId } = await params;
-  const title = serializedSessions.filter((sess) => sess.id === sessionId)[0]
-    .title;
+  const currentSession = serializedSessions.filter(
+    (sess) => sess.id === sessionId
+  )[0];
+  if (!currentSession) redirect("/chat");
+  const title = currentSession.title;
   const messages = await prisma.message.findMany({
     where: {
       userId: dbUser?.id,

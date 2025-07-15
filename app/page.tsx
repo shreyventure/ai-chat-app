@@ -8,7 +8,6 @@ export default function Home() {
       <main className="flex justify-center items-center min-h-screen">
         <div>
           <LoginButton />
-          <NewChatButton />
         </div>
       </main>
     </div>
