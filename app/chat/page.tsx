@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import Sidebar from "@/app/components/Sidebar";
+import Sidebar from "@/components/Sidebar";
 
 export default async function ChatSessionPage({
   params,

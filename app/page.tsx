@@ -1,5 +1,4 @@
-import LoginButton from "./components/LoginButton";
-import NewChatButton from "./components/NewChatButton";
+import LoginButton from "@/components/LoginButton";
 
 export default function Home() {
   return (

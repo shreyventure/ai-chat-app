@@ -3,6 +3,7 @@
 import Link from "next/link";
 import MoreOptionButton from "./MoreOptionButton";
 import { redirect } from "next/navigation";
+import { formatDate } from "@/utils/formatDate";
 
 const SessionLink = ({
   id,
@@ -15,11 +16,6 @@ const SessionLink = ({
   currentSessionId: string;
   title: string | null;
 }) => {
-  const formattedDate = (d: string) => {
-    const date = new Date(d);
-    return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-  };
-
   const deleteSession = async () => {
     try {
       await fetch(`/api/sessions/${id}`, {
@@ -40,7 +36,7 @@ const SessionLink = ({
       }`}
     >
       <Link href={`/chat/${id}`} className="flex-6">
-        {title?.trim() ?? `Chat on ${formattedDate(createdAt)}`}
+        {title?.trim() ?? `Chat on ${formatDate(createdAt)}`}
       </Link>
       <div
         className="flex-1 flex items-center justify-end"
