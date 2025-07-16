@@ -2,28 +2,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
-import Groq from "groq-sdk";
-import { ChatCompletionMessageParam } from "openai/resources.js";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-async function getGroqChatCompletion(formattedMessages: any, input: string) {
-  return groq.chat.completions.create({
-    messages: [
-      {
-        role: "system",
-        content:
-          "You're a friendly, helpful assistant who speaks casually like a human.",
-      },
-      ...formattedMessages,
-      {
-        role: "user",
-        content: input,
-      },
-    ],
-    model: "llama-3.3-70b-versatile",
-  });
-}
+import { createMessage, getAllSessionMessages } from "@/services/chatService";
+import { getGroqChatCompletion } from "@/services/groqService";
 
 export async function POST(req: Request) {
   try {
@@ -55,10 +36,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const history = await prisma.message.findMany({
-      where: { chatSessionId: sessionId },
-      orderBy: { createdAt: "asc" },
-    });
+    const history = await getAllSessionMessages({ sessionId: sessionId });
 
     const formattedMessages = history.map((msg) => ({
       role: msg.sender === "user" ? "user" : "assistant",
@@ -72,22 +50,18 @@ export async function POST(req: Request) {
 
     const aiReply = chatCompletion.choices[0]?.message?.content || "";
 
-    await prisma.message.create({
-      data: {
-        text: userInput,
-        sender: "user",
-        userId: user.id,
-        chatSessionId: sessionId,
-      },
+    await createMessage({
+      text: userInput,
+      sender: "user",
+      userId: user.id,
+      sessionId: sessionId,
     });
 
-    await prisma.message.create({
-      data: {
-        text: aiReply,
-        sender: "ai",
-        userId: user.id,
-        chatSessionId: sessionId,
-      },
+    await createMessage({
+      text: aiReply,
+      sender: "ai",
+      userId: user.id,
+      sessionId: sessionId,
     });
 
     return NextResponse.json({ reply: aiReply });
