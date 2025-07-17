@@ -1,30 +1,29 @@
 "use client";
 
-import { signIn, signOut, useSession } from "next-auth/react";
+import GoogleLogo from "@/assests/GoogleLogo";
+import { signIn } from "next-auth/react";
+import { useState } from "react";
 
-export default function LoginButton() {
-  const { data: session } = useSession();
-
-  if (session) {
-    return (
-      <div className="flex items-center gap-4">
-        <p className="text-lg">Hi, {session.user?.name}</p>
-        <button
-          onClick={() => signOut()}
-          className="px-4 py-2 bg-red-500 text-white rounded"
-        >
-          Sign out
-        </button>
-      </div>
-    );
-  }
+export default function LoginButton({
+  className,
+  reRouteUrl,
+}: {
+  className: string;
+  reRouteUrl: string;
+}) {
+  const [loading, setLoading] = useState(false);
 
   return (
     <button
-      onClick={() => signIn("google")}
-      className="px-4 py-2 bg-blue-500 text-white rounded cursor-pointer hover:bg-blue-700"
+      onClick={() => {
+        setLoading(true);
+        signIn("google", { callbackUrl: reRouteUrl });
+      }}
+      disabled={loading}
+      className={`${className}`}
     >
-      Sign in with Google
+      <GoogleLogo />
+      {loading ? <span>Signing in...</span> : <span>Sign in with Google</span>}
     </button>
   );
 }
