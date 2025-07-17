@@ -1,8 +1,9 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import NewChatButton from "./NewChatButton";
-import SessionLink from "./SessionLink";
+import NewChatButton from "@/components/NewChatButton";
+import SessionLink from "@/components/SessionLink";
+import NavBar from "@/components/NavBar";
 
 type Session = {
   id: string;
@@ -21,12 +22,11 @@ export default function Sidebar({
   const pathname = usePathname();
 
   return (
-    <div className="h-screen p-4 overflow-y-auto">
-      <div className="flex justify-between items-center mb-4">
-        <div className="text-lg font-semibold">Your Sessions</div>
-        <NewChatButton />
-      </div>
-      <div className="space-y-2">
+    <div className="h-screen p-4 overflow-y-auto bg-[#f5f5f4]">
+      <NavBar />
+      <NewChatButton className="w-full my-4" />
+      <hr />
+      <div className="space-y-2 mt-4">
         {sessions.map((s) => (
           <SessionLink
             key={s.id}

@@ -29,10 +29,10 @@ const SessionLink = ({
 
   return (
     <div
-      className={`p-2 rounded cursor-pointer flex items-center ${
+      className={`p-2 rounded cursor-pointer flex items-center text-[#3f3f3f] ${
         id === currentSessionId
-          ? "bg-purple-500 text-white"
-          : "hover:bg-gray-400"
+          ? "bg-gray-400 text-[#efefef]"
+          : "hover:bg-[#e7e5e4]"
       }`}
     >
       <Link href={`/chat/${id}`} className="flex-6">

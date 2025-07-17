@@ -109,7 +109,6 @@ export default function ChatClient({
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                 let msg = messages[virtualRow.index];
                 return (
-                  // ------
                   <div
                     key={virtualRow.key}
                     data-index={virtualRow.index}

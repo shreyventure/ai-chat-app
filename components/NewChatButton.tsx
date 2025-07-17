@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
-export default function NewChatButton() {
+export default function NewChatButton({ className }: { className: string }) {
   const router = useRouter();
 
   const createNewChat = async () => {
@@ -15,7 +15,7 @@ export default function NewChatButton() {
   return (
     <button
       onClick={createNewChat}
-      className="bg-gray-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-gray-300"
+      className={`border text-gray-500 px-4 py-2 rounded cursor-pointer hover:bg-gray-50 ${className}`}
     >
       New Chat
     </button>
