@@ -21,10 +21,19 @@ export default async function ChatSessionPage({
   const dbUser = await prisma.user.findUnique({
     where: { email: session.user.email },
   });
-  const allSessions = await prisma.chatSession.findMany({
+  const participantSessionsResponse = await prisma.chatParticipant.findMany({
     where: { userId: dbUser?.id },
-    orderBy: { createdAt: "desc" },
+    include: {
+      chatSession: true,
+    },
+    orderBy: {
+      chatSession: {
+        createdAt: "desc",
+      },
+    },
   });
+  const allSessions = participantSessionsResponse.map((p) => p.chatSession);
+  console.log("allSessions", allSessions);
   const serializedSessions = allSessions.map((s) => ({
     ...s,
     createdAt: s.createdAt.toISOString(),
@@ -36,9 +45,9 @@ export default async function ChatSessionPage({
   const title = currentSession.title;
   const messages = await prisma.message.findMany({
     where: {
-      userId: dbUser?.id,
       chatSessionId: sessionId,
     },
+    include: { user: true },
     orderBy: { createdAt: "asc" },
   });
 
@@ -55,6 +64,7 @@ export default async function ChatSessionPage({
           initialMessages={messages}
           sessionId={sessionId}
           title={title ?? ""}
+          user={session.user}
         />
       </div>
     </div>

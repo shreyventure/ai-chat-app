@@ -3,6 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import { getOrCreateUser } from "@/lib/getOrCreateUser";
 
 export default async function ChatSessionPage({
   params,
@@ -14,14 +15,24 @@ export default async function ChatSessionPage({
   if (!session?.user?.email) {
     redirect("/");
   }
+  console.log(session);
+  const dbUser = await getOrCreateUser(session);
 
-  const dbUser = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  });
-  const allSessions = await prisma.chatSession.findMany({
+  console.log(dbUser.id);
+  const participantSessionsResponse = await prisma.chatParticipant.findMany({
     where: { userId: dbUser?.id },
-    orderBy: { createdAt: "desc" },
+    include: {
+      chatSession: true,
+    },
+    orderBy: {
+      chatSession: {
+        createdAt: "desc",
+      },
+    },
   });
+  console.log("dbUser", dbUser);
+  const allSessions = participantSessionsResponse.map((p) => p.chatSession);
+  console.log("allSessions", allSessions);
   const serializedSessions = allSessions.map((s) => ({
     ...s,
     createdAt: s.createdAt.toISOString(),
