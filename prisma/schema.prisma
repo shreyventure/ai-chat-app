@@ -14,21 +14,30 @@ datasource db {
 }
 
 model User {
-  id       String        @id @default(cuid())
+  id       String            @id @default(cuid())
   name     String?
-  email    String?       @unique
+  email    String?           @unique
   image    String?
   messages Message[]
-  sessions ChatSession[] // 👈 This fixes the P1012 error
+  sessions ChatParticipant[] // 👈 now connected through join table
 }
 
 model ChatSession {
-  id        String    @id @default(cuid())
-  title     String?
-  createdAt DateTime  @default(now())
-  user      User      @relation(fields: [userId], references: [id])
-  userId    String
-  messages  Message[]
+  id           String            @id @default(cuid())
+  title        String?
+  createdAt    DateTime          @default(now())
+  participants ChatParticipant[] // 👈 connected through join table
+  messages     Message[]
+}
+
+model ChatParticipant {
+  id            String      @id @default(cuid())
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id])
+  chatSessionId String
+
+  @@unique([userId, chatSessionId]) // 👈 prevent duplicate entries
 }
 
 model Message {
