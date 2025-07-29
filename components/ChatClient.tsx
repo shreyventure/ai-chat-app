@@ -3,21 +3,33 @@
 import { useEffect, useRef, useState } from "react";
 import { SessionTitleEditor } from "./SessionTitleEditor";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { io } from "socket.io-client";
 
-type Message = {
+const socket = io(undefined, { path: "/api/socketio" });
+
+interface User {
+  name?: string | null | undefined;
+  email?: string | null | undefined;
+  image?: string | null | undefined;
+}
+
+interface Message {
   id: string;
   text: string;
   sender: string;
-};
+  user: User | null | undefined;
+}
 
 export default function ChatClient({
   initialMessages,
   sessionId,
   title,
+  user,
 }: {
   initialMessages: Message[];
   sessionId: string;
   title: string;
+  user: User;
 }) {
   const [messages, setMessages] = useState(initialMessages);
   const [input, setInput] = useState("");
@@ -41,6 +53,31 @@ export default function ChatClient({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    socket.emit("join-session", sessionId);
+
+    socket.on("chat-message", (data) => {
+      console.log("New data:", data);
+      let newMessage = {
+        id: crypto.randomUUID(),
+        text: data.text,
+        sender: data.sender,
+        user: data.user || {
+          email: "ai@abc.com",
+          image:
+            "https://lh3.googleusercontent.com/a/ACg8ocJ6eljr_dL_-0H1zKrpFlamsuKKa3uS7SYQtsjjC7CTDn12fQ=s96-c",
+          name: "Ai",
+        },
+      };
+
+      setMessages((prev) => [...prev, newMessage]);
+    });
+
+    return () => {
+      socket.off("chat-message");
+    };
+  }, [sessionId]);
+
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -49,15 +86,21 @@ export default function ChatClient({
       id: crypto.randomUUID(),
       text: input,
       sender: "user" as const,
+      user: user || {},
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    socket.emit("chat-message", {
+      sessionId,
+      message: { text: input, sender: "user", user },
+    });
+
+    // setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoadingMessage(true);
 
     const res = await fetch("/api/chat", {
       method: "POST",
-      body: JSON.stringify({ message: input, sessionId }),
+      body: JSON.stringify({ message: `${user.name}: ${input}`, sessionId }),
     });
 
     const data = await res.json();
@@ -66,9 +109,20 @@ export default function ChatClient({
       id: crypto.randomUUID(),
       text: data.reply,
       sender: "ai" as const,
+      user: {
+        email: "ai@abc.com",
+        image:
+          "https://lh3.googleusercontent.com/a/ACg8ocJ6eljr_dL_-0H1zKrpFlamsuKKa3uS7SYQtsjjC7CTDn12fQ=s96-c",
+        name: "Ai",
+      },
     };
 
-    setMessages((prev) => [...prev, aiMessage]);
+    socket.emit("chat-message", {
+      sessionId,
+      message: { text: data.reply, sender: "ai" },
+    });
+
+    // setMessages((prev) => [...prev, aiMessage]);
     setIsLoadingMessage(false);
   };
 
@@ -117,16 +171,21 @@ export default function ChatClient({
                     <div
                       key={msg.id}
                       className={`my-2 flex ${
-                        msg.sender === "user" ? "justify-end" : "justify-start"
+                        msg.user?.email === user.email
+                          ? "justify-end"
+                          : "justify-start"
                       }`}
                     >
                       <div
                         className={`px-4 py-2 rounded-lg max-w-3xl ${
-                          msg.sender === "user"
+                          msg.user?.email === user.email
                             ? "bg-blue-500 text-white"
                             : "bg-gray-200 text-gray-900"
                         }`}
                       >
+                        {msg.user?.email !== user.email ? (
+                          <p className="text-gray-500">{msg.user?.name}</p>
+                        ) : null}
                         {/* <div>
                           <p>{virtualRow.index}</p>
                         </div> */}
