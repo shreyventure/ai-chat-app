@@ -10,18 +10,44 @@ export async function POST() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const user = await prisma.user.findUnique({
+  // Save user if not exists
+  const user = await prisma.user.upsert({
     where: { email: session.user.email },
+    update: {},
+    create: {
+      email: session.user.email,
+      name: session.user.name,
+      image: session.user.image,
+    },
+  });
+
+  const aiUser = await prisma.user.findUnique({
+    where: { email: "ai@abc.com" },
   });
 
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  if (!aiUser) {
+    return NextResponse.json({ error: "AI not found" }, { status: 404 });
+  }
+
   const newSession = await prisma.chatSession.create({
+    data: { title: "New Chat" },
+  });
+
+  await prisma.chatParticipant.create({
     data: {
       userId: user.id,
-      title: null, // or default title
+      chatSessionId: newSession.id,
+    },
+  });
+
+  await prisma.chatParticipant.create({
+    data: {
+      userId: aiUser.id,
+      chatSessionId: newSession.id,
     },
   });
 

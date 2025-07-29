@@ -25,13 +25,18 @@ export async function POST(req: Request) {
       },
     });
 
+    const aiUser = await prisma.user.findUnique({
+      where: { email: "ai@abc.com" },
+    });
+
+    console.log("aiUser", aiUser);
     const body = await req.json();
     const userInput = body.message?.trim();
     const sessionId = body.sessionId;
 
-    if (!userInput || !sessionId) {
+    if (!userInput || !sessionId || !aiUser) {
       return NextResponse.json(
-        { error: "Missing input or sessionId" },
+        { error: "Something not found..." },
         { status: 400 }
       );
     }
@@ -60,7 +65,7 @@ export async function POST(req: Request) {
     await createMessage({
       text: aiReply,
       sender: "ai",
-      userId: user.id,
+      userId: aiUser.id,
       sessionId: sessionId,
     });
 
