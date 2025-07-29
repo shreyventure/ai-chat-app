@@ -14,9 +14,11 @@ type Session = {
 export default function Sidebar({
   sessions,
   currentSessionId,
+  userId,
 }: {
   sessions: Session[];
   currentSessionId: string;
+  userId: string;
 }) {
   const pathname = usePathname();
 

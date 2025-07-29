@@ -45,7 +45,11 @@ export default async function ChatSessionPage({
       // style={{ border: "5px solid green" }}
     >
       <div className="flex-1 bg-gray-900">
-        <Sidebar sessions={serializedSessions} currentSessionId={sessionId} />
+        <Sidebar
+          sessions={serializedSessions}
+          currentSessionId={sessionId}
+          userId={dbUser.id}
+        />
       </div>
       <div className="flex-3 bg-white">
         {/* <ChatClient
