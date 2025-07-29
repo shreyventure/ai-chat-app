@@ -8,7 +8,6 @@ import NavBar from "@/components/NavBar";
 type Session = {
   id: string;
   createdAt: string;
-  userId: string;
   title: string | null;
 };
 

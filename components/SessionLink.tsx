@@ -3,7 +3,6 @@
 import Link from "next/link";
 import MoreOptionButton from "./MoreOptionButton";
 import { redirect } from "next/navigation";
-import { formatDate } from "@/utils/formatDate";
 
 const SessionLink = ({
   id,
@@ -36,7 +35,7 @@ const SessionLink = ({
       }`}
     >
       <Link href={`/chat/${id}`} className="flex-6">
-        {title?.trim() ?? `Chat on ${formatDate(createdAt)}`}
+        {title?.trim()}
       </Link>
       <div
         className="flex-1 flex items-center justify-end"
