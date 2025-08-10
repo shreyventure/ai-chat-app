@@ -11,7 +11,7 @@ export async function getGroqChatCompletion(
       {
         role: "system",
         content:
-          "You're a friendly, helpful assistant who speaks casually like a human.",
+          "You're a friendly, helpful assistant who speaks casually like a human. You are in a multiuser text environment and you will recieve texts prefixed with the user's name that is texting you and you should text accordingly.",
       },
       ...formattedMessages,
       {
