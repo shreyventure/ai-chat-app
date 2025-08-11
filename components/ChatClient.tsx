@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { SessionTitleEditor } from "./SessionTitleEditor";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { io } from "socket.io-client";
+import Alert, { AlertType } from "@/components/Alert";
 
 const socket = io(undefined, { path: "/api/socketio" });
 
@@ -31,25 +32,25 @@ export default function ChatClient({
   title: string;
   user: User;
 }) {
-  const [messages, setMessages] = useState(initialMessages);
-  const [input, setInput] = useState("");
-  const [isLoadingMessage, setIsLoadingMessage] = useState(false);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [input, setInput] = useState<string>("");
+  const [isLoadingMessage, setIsLoadingMessage] = useState<boolean>(false);
+
+  const [showAlert, setShowAlert] = useState<boolean>(false);
+  const [alertType, setAlertType] = useState<AlertType>("success");
+  const [alertMessage, setAlertMessage] = useState<string>("");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
 
   const rowVirtualizer = useVirtualizer({
     count: messages.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 72, // Adjust based on average message height
+    estimateSize: () => 72,
     overscan: 10,
   });
 
   useEffect(() => {
-    // rowVirtualizer.scrollToIndex(messages.length - 1, {
-    //   align: "start",
-    //   behavior: "smooth",
-    // });
-    // console.log(`scrolling to: ${messages.length - 1}`);
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
@@ -57,9 +58,11 @@ export default function ChatClient({
     socket.emit("join-session", sessionId);
 
     socket.on("chat-message", (data) => {
-      console.log("New data:", data);
+      // check for duplicates
+      if (data.id && messages.some((m) => m.id === data.id)) return;
+
       let newMessage = {
-        id: crypto.randomUUID(),
+        id: data.id || crypto.randomUUID(),
         text: data.text,
         sender: data.sender,
         user: data.user || {
@@ -89,45 +92,83 @@ export default function ChatClient({
       user: user || {},
     };
 
-    socket.emit("chat-message", {
-      sessionId,
-      message: { text: input, sender: "user", user },
-    });
-
-    // setMessages((prev) => [...prev, userMessage]);
+    const messageWithId = { ...userMessage, id: crypto.randomUUID() };
     setInput("");
     setIsLoadingMessage(true);
 
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      body: JSON.stringify({ message: `${user.name}: ${input}`, sessionId }),
-    });
-
-    const data = await res.json();
-
-    const aiMessage = {
-      id: crypto.randomUUID(),
-      text: data.reply,
-      sender: "ai" as const,
-      user: {
-        email: "ai@abc.com",
-        image:
-          "https://lh3.googleusercontent.com/a/ACg8ocJ6eljr_dL_-0H1zKrpFlamsuKKa3uS7SYQtsjjC7CTDn12fQ=s96-c",
-        name: "Ai",
-      },
-    };
-
     socket.emit("chat-message", {
       sessionId,
-      message: { text: data.reply, sender: "ai" },
+      message: { ...messageWithId, text: input, sender: "user", user },
     });
 
-    // setMessages((prev) => [...prev, aiMessage]);
-    setIsLoadingMessage(false);
+    let res;
+    try {
+      // Validate sessionId is a valid UUID v4
+
+      res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: input.trim(),
+          sessionId: sessionId,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("API Error Details:", {
+          status: res.status,
+          error: errorData.error,
+          details: errorData.details || "No additional details",
+        });
+        setIsLoadingMessage(false);
+        return;
+      }
+      const data = await res.json();
+
+      const aiMessage = {
+        id: crypto.randomUUID(),
+        text: data.reply,
+        sender: "ai" as const,
+        user: {
+          email: "ai@abc.com",
+          image:
+            "https://lh3.googleusercontent.com/a/ACg8ocJ6eljr_dL_-0H1zKrpFlamsuKKa3uS7SYQtsjjC7CTDn12fQ=s96-c",
+          name: "Ai",
+        },
+      };
+
+      const aiMessageWithId = { ...aiMessage, id: crypto.randomUUID() };
+      setIsLoadingMessage(false);
+
+      socket.emit("chat-message", {
+        sessionId,
+        message: { ...aiMessageWithId, text: data.reply, sender: "ai" },
+      });
+    } catch (error) {
+      console.error("Request failed:", error);
+      setAlertType("error");
+      setAlertMessage(
+        error instanceof Error ? error.message : "An error occured."
+      );
+      setShowAlert(true);
+      setIsLoadingMessage(false);
+      return;
+    }
   };
 
   return (
     <div className="flex flex-col h-100 max-h-screen min-h-screen m-auto">
+      <Alert
+        type={alertType}
+        message={alertMessage}
+        duration={3000}
+        isVisible={showAlert}
+        setIsVisible={setShowAlert}
+        onClose={() => setShowAlert(false)}
+      />
       <div className="border-b">
         <SessionTitleEditor initialTitle={title} sessionId={sessionId} />
       </div>
@@ -183,17 +224,18 @@ export default function ChatClient({
                             : "bg-gray-200 text-gray-900"
                         }`}
                       >
-                        {msg.user?.email !== user.email ? (
-                          <p className="text-gray-500">{msg.user?.name}</p>
-                        ) : null}
-                        {/* <div>
-                          <p>{virtualRow.index}</p>
-                        </div> */}
+                        {msg.sender === "ai" && msg.user?.name && (
+                          <p className="text-gray-500">{msg.user.name}</p>
+                        )}
+                        {msg.sender === "user" &&
+                          msg.user?.email !== user.email &&
+                          msg.user?.name && (
+                            <p className="text-gray-500">{msg.user.name}</p>
+                          )}
                         {msg.text}
                       </div>
                     </div>
                   </div>
-                  // ------
                 );
               })}
             </div>
@@ -204,8 +246,6 @@ export default function ChatClient({
           <div ref={messagesEndRef} />
         </div>
       )}
-
-      {/* Input bar */}
 
       <form
         onSubmit={sendMessage}
