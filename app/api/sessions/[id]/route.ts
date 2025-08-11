@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function PUT(
   req: Request,
@@ -39,8 +40,17 @@ export async function DELETE(
       where: { id },
     });
 
-    return NextResponse.json(session);
+    return NextResponse.json(session, { status: 200 });
   } catch (error) {
-    return NextResponse.error();
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    }
+    return NextResponse.json(
+      { error: "Failed to delete session" },
+      { status: 500 }
+    );
   }
 }

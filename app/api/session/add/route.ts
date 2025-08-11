@@ -1,31 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const JoinSessionSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
+  chatSessionId: z.string().min(1, "Session ID is required"),
+});
 
 export async function POST(req: NextRequest) {
-  const { searchParams } = req.nextUrl;
-  const userId = searchParams.get("userId");
-  const chatSessionId = searchParams.get("chatSessionId");
-  console.log(userId);
-  console.log(chatSessionId);
-
-  if (!userId || !chatSessionId) {
-    return NextResponse.json(
-      { error: "Missing userId or chatSessionId" },
-      { status: 400 }
-    );
-  }
-
   try {
+    const params = await req.json();
+
+    const validation = JoinSessionSchema.safeParse(params);
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid parameters",
+          details: validation.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const { userId, chatSessionId } = validation.data;
+
     // Ensure both user and session exist
     await prisma.user.findUniqueOrThrow({ where: { id: userId } });
     await prisma.chatSession.findUniqueOrThrow({
       where: { id: chatSessionId },
     });
+
     const existing = await prisma.chatParticipant.findUnique({
       where: {
-        userId_chatSessionId: { userId, chatSessionId }, // assuming compound unique
+        userId_chatSessionId: { userId, chatSessionId },
       },
     });
+
     if (existing) {
       return NextResponse.json({ error: "Already joined" }, { status: 409 });
     }
@@ -43,7 +53,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.error("Internal error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

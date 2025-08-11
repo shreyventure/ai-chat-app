@@ -14,6 +14,7 @@ export default async function ChatSessionPage({
 
   if (!session?.user?.email) {
     redirect("/");
+    return;
   }
 
   const { sessionId } = await params;
@@ -23,7 +24,18 @@ export default async function ChatSessionPage({
   });
   if (!dbUser) {
     redirect("/");
+    return;
   }
+  // First verify session exists at all
+  const sessionExists = await prisma.chatSession.findUnique({
+    where: { id: sessionId },
+  });
+  if (!sessionExists) {
+    redirect("/chat");
+    return;
+  }
+
+  // Then verify user has access
   const participantSessionsResponse = await prisma.chatParticipant.findMany({
     where: { userId: dbUser?.id },
     include: {
@@ -36,15 +48,17 @@ export default async function ChatSessionPage({
     },
   });
   const allSessions = participantSessionsResponse.map((p) => p.chatSession);
-  console.log("allSessions", allSessions);
   const serializedSessions = allSessions.map((s) => ({
     ...s,
     createdAt: s.createdAt.toISOString(),
   }));
-  const currentSession = serializedSessions.filter(
+  const currentSession = serializedSessions.find(
     (sess) => sess.id === sessionId
-  )[0];
-  if (!currentSession) redirect("/chat");
+  );
+  if (!currentSession) {
+    // Session exists but user doesn't have access - maybe join session?
+    redirect("/chat");
+  }
   const title = currentSession.title;
   const messages = await prisma.message.findMany({
     where: {
@@ -64,6 +78,7 @@ export default async function ChatSessionPage({
           sessions={serializedSessions}
           currentSessionId={sessionId}
           userId={dbUser.id}
+          key={sessionId} // Force re-render when session changes
         />
       </div>
       <div className="flex-3 bg-white">

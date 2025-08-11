@@ -2,15 +2,20 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
+import { z } from "zod";
 
 import { createMessage, getAllSessionMessages } from "@/services/chatService";
 import { getGroqChatCompletion } from "@/services/groqService";
+
+const ChatRequestSchema = z.object({
+  message: z.string().min(1).max(1000, "Message must be 1-1000 characters"),
+  sessionId: z.string().min(1, "Session ID is required"),
+});
 
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
-      console.log("not authenticated!");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -29,17 +34,27 @@ export async function POST(req: Request) {
       where: { email: "ai@abc.com" },
     });
 
-    console.log("aiUser", aiUser);
-    const body = await req.json();
-    const userInput = body.message?.trim();
-    const sessionId = body.sessionId;
-
-    if (!userInput || !sessionId || !aiUser) {
+    if (!aiUser) {
       return NextResponse.json(
-        { error: "Something not found..." },
+        { error: "AI user configuration missing" },
+        { status: 500 }
+      );
+    }
+
+    const body = await req.json();
+    const validation = ChatRequestSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: "Invalid request data",
+          details: validation.error.flatten(),
+        },
         { status: 400 }
       );
     }
+
+    const { message: userInput, sessionId } = validation.data;
 
     const history = await getAllSessionMessages({ sessionId: sessionId });
 
@@ -48,15 +63,17 @@ export async function POST(req: Request) {
       content: msg.text,
     }));
 
+    // Prefix name only when sending to AI
+    const prefixedInput = `${user.name}: ${userInput}`;
     const chatCompletion = await getGroqChatCompletion(
       formattedMessages,
-      userInput
+      prefixedInput
     );
 
     const aiReply = chatCompletion.choices[0]?.message?.content || "";
 
     await createMessage({
-      text: userInput,
+      text: userInput, // Store raw message
       sender: "user",
       userId: user.id,
       sessionId: sessionId,
