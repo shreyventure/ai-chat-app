@@ -160,7 +160,7 @@ export default function ChatClient({
   };
 
   return (
-    <div className="flex flex-col h-100 max-h-screen min-h-screen m-auto">
+    <div className="flex flex-col h-full bg-[#26282e] text-white">
       <Alert
         type={alertType}
         message={alertMessage}
@@ -169,100 +169,138 @@ export default function ChatClient({
         setIsVisible={setShowAlert}
         onClose={() => setShowAlert(false)}
       />
-      <div className="border-b">
+      {/* Header */}
+      <div className="flex-shrink-0 border-b border-gray-700 bg-[#1f2127]">
         <SessionTitleEditor initialTitle={title} sessionId={sessionId} />
       </div>
 
       {/* Messages area */}
       {messages.length === 0 ? (
-        <div className="flex-1 flex justify-center items-center">
-          <h1 className="text-gray-500">Nothing here yet.</h1>
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div className="text-center space-y-6">
+            <div className="text-6xl">🤖</div>
+            <h2 className="text-xl text-gray-300">Ready to chat!</h2>
+            <p className="text-gray-400">Start the conversation below</p>
+          </div>
         </div>
       ) : (
-        <div
-          className="flex-1 overflow-auto relative"
-          style={{ padding: "0 10rem" }}
-          ref={parentRef}
-        >
+        <div className="flex-1 flex flex-col min-h-0">
           <div
-            style={{
-              height: `${rowVirtualizer.getTotalSize()}px`,
-              position: "relative",
-            }}
+            className="flex-1 overflow-y-auto px-4 md:px-8 lg:px-16 py-4"
+            ref={parentRef}
           >
             <div
               style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                transform: `translateY(${
-                  rowVirtualizer.getVirtualItems()[0]?.start ?? 0
-                }px)`,
+                height: `${rowVirtualizer.getTotalSize()}px`,
+                position: "relative",
               }}
             >
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                let msg = messages[virtualRow.index];
-                return (
-                  <div
-                    key={virtualRow.key}
-                    data-index={virtualRow.index}
-                    ref={rowVirtualizer.measureElement}
-                  >
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  transform: `translateY(${
+                    rowVirtualizer.getVirtualItems()[0]?.start ?? 0
+                  }px)`,
+                }}
+              >
+                {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                  let msg = messages[virtualRow.index];
+                  return (
                     <div
-                      key={msg.id}
-                      className={`my-2 flex ${
-                        msg.user?.email === user.email
-                          ? "justify-end"
-                          : "justify-start"
-                      }`}
+                      key={virtualRow.key}
+                      data-index={virtualRow.index}
+                      ref={rowVirtualizer.measureElement}
                     >
                       <div
-                        className={`px-4 py-2 rounded-lg max-w-3xl ${
+                        key={msg.id}
+                        className={`mb-4 flex ${
                           msg.user?.email === user.email
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-200 text-gray-900"
+                            ? "justify-end"
+                            : "justify-start"
                         }`}
                       >
-                        {msg.sender === "ai" && msg.user?.name && (
-                          <p className="text-gray-500">{msg.user.name}</p>
-                        )}
-                        {msg.sender === "user" &&
-                          msg.user?.email !== user.email &&
-                          msg.user?.name && (
-                            <p className="text-gray-500">{msg.user.name}</p>
+                        <div
+                          className={`px-4 py-3 rounded-2xl max-w-2xl shadow-md ${
+                            msg.user?.email === user.email
+                              ? "bg-[#72F5FE] text-black font-medium shadow-[#72F5FE]/20"
+                              : "bg-[#1f2127] text-white shadow-black/20"
+                          }`}
+                        >
+                          {msg.sender === "ai" && msg.user?.name && (
+                            <p className="text-[#72F5FE] text-sm font-medium mb-1">
+                              {msg.user.name}
+                            </p>
                           )}
-                        {msg.text}
+                          {msg.sender === "user" &&
+                            msg.user?.email !== user.email &&
+                            msg.user?.name && (
+                              <p className="text-gray-400 text-sm font-medium mb-1">
+                                {msg.user.name}
+                              </p>
+                            )}
+                          <div className="whitespace-pre-wrap leading-relaxed">
+                            {msg.text}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
+            <div ref={messagesEndRef} />
           </div>
-          {isLoadingMessage ? (
-            <p className="text-gray-400">Thinking...</p>
-          ) : null}
-          <div ref={messagesEndRef} />
+
+          {/* Loading indicator - positioned outside the scrollable area */}
+          {isLoadingMessage && (
+            <div className="flex-shrink-0 px-4 md:px-8 lg:px-16 pb-2">
+              <div className="flex justify-start">
+                <div className="bg-[#1f2127] px-4 py-3 rounded-2xl shadow-md shadow-black/20">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-[#72F5FE] rounded-full animate-bounce"></div>
+                      <div
+                        className="w-2 h-2 bg-[#72F5FE] rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-[#72F5FE] rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
+                    </div>
+                    <span className="text-gray-400 text-sm">
+                      AI is thinking...
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      <form
-        onSubmit={sendMessage}
-        className="flex gap-2 p-4 border-t"
-        style={{ padding: "1rem 10rem" }}
-      >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask me anything..."
-          className="flex-1 p-2 rounded text-black bg-gray-100 focus:outline-none"
-        />
-        <button type="submit" className="bg-blue-500 text-white px-4 rounded">
-          Send
-        </button>
-      </form>
+      {/* Input area */}
+      <div className="flex-shrink-0 border-t border-gray-700 bg-[#1f2127] p-4 md:px-8 lg:px-16">
+        <form onSubmit={sendMessage} className="flex gap-3 max-w-4xl mx-auto">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask me anything..."
+            className="flex-1 p-3 rounded-xl bg-[#26282e] text-white border border-gray-600 focus:outline-none focus:border-[#72F5FE] focus:ring-1 focus:ring-[#72F5FE] placeholder-gray-400 shadow-sm"
+          />
+          <button
+            type="submit"
+            className="bg-[#72F5FE] hover:bg-[#5de3ec] text-black font-medium px-6 py-3 rounded-xl transition-colors duration-200 disabled:opacity-50 shadow-sm"
+            disabled={!input.trim() || isLoadingMessage}
+          >
+            Send
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

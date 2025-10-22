@@ -69,11 +69,8 @@ export default async function ChatSessionPage({
   });
 
   return (
-    <div
-      className="flex h-screen justify-center items-center overflow-hidden"
-      // style={{ border: "5px solid green" }}
-    >
-      <div className="flex-1 bg-gray-900">
+    <div className="flex h-screen bg-[#26282e] overflow-hidden">
+      <div className="w-80 flex-shrink-0">
         <Sidebar
           sessions={serializedSessions}
           currentSessionId={sessionId}
@@ -81,7 +78,7 @@ export default async function ChatSessionPage({
           key={sessionId} // Force re-render when session changes
         />
       </div>
-      <div className="flex-3 bg-white">
+      <div className="flex-1 flex flex-col min-w-0">
         <ChatClient
           initialMessages={messages}
           sessionId={sessionId}

@@ -36,20 +36,19 @@ const JoinChatForm = ({ userId }: { userId: string }) => {
   };
   return (
     <div>
-      <form className="w-full max-w-sm" onSubmit={handleSubmit}>
-        <div className="flex items-center border-b border-gray-400 py-2">
+      <form className="w-full mb-4" onSubmit={handleSubmit}>
+        <div className="flex items-center gap-2">
           <input
-            className="appearance-none bg-transparent border-none w-full text-gray-700 mr-3 py-1 px-2 leading-tight focus:outline-none"
+            className="flex-1 bg-[#26282e] border border-gray-600 text-white py-2 px-3 rounded-lg focus:outline-none focus:border-[#72F5FE] focus:ring-1 focus:ring-[#72F5FE] placeholder-gray-400"
             type="text"
             placeholder="Enter session ID"
-            aria-label="Full name"
             value={chatSessionId}
             onChange={(e) => {
               setChatSessionId(e.target.value);
             }}
           />
           <button
-            className="flex-shrink-0 bg-gray-500 hover:bg-gray-700 hover:cursor-pointer border-gray-500 hover:border-gray-700 text-sm border-4 text-white text-center py-1 px-2 rounded"
+            className="bg-[#72F5FE] hover:bg-[#5de3ec] text-black font-medium py-2 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50"
             type="submit"
             disabled={loading}
           >

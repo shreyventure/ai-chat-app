@@ -26,7 +26,7 @@ export default function SocketHandler(
       });
 
       socket.on("chat-message", ({ sessionId, message }) => {
-        socket.to(sessionId).emit("chat-message", message);
+        io.to(sessionId).emit("chat-message", message); // Broadcast to all including sender
       });
 
       socket.on("disconnect", () => {

@@ -85,10 +85,10 @@ export default function NewChatButton({
       />
       <button
         onClick={createNewChat}
-        className={`border text-gray-500 px-4 py-2 rounded cursor-pointer hover:bg-gray-50 ${className}`}
+        className={`border border-gray-600 text-white px-4 py-3 rounded-lg cursor-pointer hover:bg-[#72F5FE] hover:text-black hover:border-[#72F5FE] transition-colors duration-200 font-medium ${className}`}
         disabled={loading}
       >
-        {loading ? <Spinner /> : "New Chat"}
+        {loading ? <Spinner /> : "✨ New Chat"}
       </button>
     </>
   );

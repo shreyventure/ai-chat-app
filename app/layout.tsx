@@ -10,7 +10,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body data-new-gr-c-s-check-loaded="14.1244.0" data-gr-ext-installed="">
+      <body>
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

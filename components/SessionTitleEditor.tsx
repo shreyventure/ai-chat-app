@@ -35,12 +35,12 @@ export function SessionTitleEditor({
       onChange={(e) => setTitle(e.target.value)}
       onBlur={saveTitle}
       autoFocus
-      className="text-8xl font-semibold border-b bg-transparent outline-none text-gray-500 p-3"
+      className="text-xl font-semibold border-b border-gray-600 bg-transparent outline-none text-white p-3 w-full focus:border-[#72F5FE]"
     />
   ) : (
     <h1
       onClick={trackEditing}
-      className="text-xl font-semibold cursor-pointer m-2 text-gray-500"
+      className="text-xl font-semibold cursor-pointer m-2 text-white hover:text-[#72F5FE] transition-colors duration-200"
       title="Click to edit"
     >
       {title || "(untitled session)"}

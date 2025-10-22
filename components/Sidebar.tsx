@@ -5,6 +5,7 @@ import NewChatButton from "@/components/NewChatButton";
 import SessionLink from "@/components/SessionLink";
 import NavBar from "@/components/NavBar";
 import JoinChatForm from "./JoinChatForm";
+import { useState } from "react";
 
 type Session = {
   id: string;
@@ -22,23 +23,41 @@ export default function Sidebar({
   userId: string;
 }) {
   const pathname = usePathname();
+  const [chatSessions, setChatSessions] = useState(sessions);
+
+  const addNewChatSession = (chatSession: Session) => {
+    setChatSessions([chatSession, ...chatSessions]);
+  };
+
+  const deleteChatSession = (chatSessionId: string) => {
+    setChatSessions(chatSessions.filter((cs) => cs.id !== chatSessionId));
+  };
 
   return (
-    <div className="h-screen p-4 overflow-y-auto bg-[#f5f5f4]">
-      <NavBar />
-      <JoinChatForm userId={userId} />
-      <NewChatButton className="w-full my-4" />
-      <hr />
-      <div className="space-y-2 mt-4">
-        {sessions.map((s) => (
-          <SessionLink
-            key={s.id}
-            id={s.id}
-            createdAt={s.createdAt}
-            currentSessionId={currentSessionId}
-            title={s.title}
-          />
-        ))}
+    <div className="h-full flex flex-col bg-[#1f2127] border-r border-gray-700">
+      <div className="flex-shrink-0 p-4 border-b border-gray-700">
+        <NavBar />
+      </div>
+      <div className="flex-shrink-0 p-4">
+        <JoinChatForm userId={userId} />
+        <NewChatButton
+          className="w-full"
+          addNewChatSession={addNewChatSession}
+        />
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-2">
+          {chatSessions.map((s) => (
+            <SessionLink
+              key={s.id}
+              id={s.id}
+              createdAt={s.createdAt}
+              currentSessionId={currentSessionId}
+              title={s.title}
+              deleteChatSession={deleteChatSession}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

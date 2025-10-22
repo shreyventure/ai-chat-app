@@ -34,7 +34,7 @@ model ChatParticipant {
   id            String      @id @default(cuid())
   user          User        @relation(fields: [userId], references: [id])
   userId        String
-  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id])
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
   chatSessionId String
 
   @@unique([userId, chatSessionId]) // 👈 prevent duplicate entries

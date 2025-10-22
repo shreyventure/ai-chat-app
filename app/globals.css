@@ -19,6 +19,12 @@
   }
 }
 
+/* Force dark theme for chat pages */
+:root {
+  --background: #26282e;
+  --foreground: #ededed;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

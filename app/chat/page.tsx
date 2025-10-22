@@ -40,27 +40,24 @@ export default async function ChatSessionPage({
   const { sessionId } = await params;
 
   return (
-    <div
-      className="flex h-screen justify-center items-center overflow-hidden"
-      // style={{ border: "5px solid green" }}
-    >
-      <div className="flex-1 bg-gray-900">
+    <div className="flex h-screen bg-[#26282e] overflow-hidden">
+      <div className="w-80 flex-shrink-0">
         <Sidebar
           sessions={serializedSessions}
           currentSessionId={sessionId}
           userId={dbUser.id}
         />
       </div>
-      <div className="flex-3 bg-white">
-        {/* <ChatClient
-          initialMessages={messages}
-          sessionId={sessionId}
-          title={title ?? ""}
-        /> */}
-        <div className="flex h-100 max-h-screen min-h-screen m-auto justify-center items-center text-center text-gray-500">
-          <div>
-            <p>Select a session from the left</p>
-            <p>or create a new one to get started 💬</p>
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex items-center justify-center text-center p-8">
+          <div className="space-y-6">
+            <div className="text-6xl">💬</div>
+            <h2 className="text-2xl font-semibold text-white">
+              Welcome to <span className="text-[#72F5FE]">ConvoSync</span>
+            </h2>
+            <p className="text-gray-300 text-lg max-w-md">
+              Select a session from the left or create a new one to get started
+            </p>
           </div>
         </div>
       </div>

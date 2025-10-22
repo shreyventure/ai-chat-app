@@ -7,7 +7,7 @@ export default function Home() {
       <div className="max-w-6xl w-full flex flex-col-reverse md:flex-row items-center justify-between gap-12">
         <div className="flex flex-col gap-6 text-center md:text-left">
           <h1 className="text-4xl md:text-6xl font-extrabold leading-tight">
-            Welcome to <span className="text-[#72F5FE]">AI Chat</span>
+            Welcome to <span className="text-[#72F5FE]">ConvoSync</span>
           </h1>
           <p className="text-lg md:text-xl text-gray-300 max-w-xl">
             Your personal AI assistant to help you chat smarter, faster, and
