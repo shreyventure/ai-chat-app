@@ -53,6 +53,12 @@ const SessionLink = ({
     }
   };
 
+  const handleCopySuccess = () => {
+    setAlertType("success");
+    setAlertMessage("Session ID copied to clipboard!");
+    setShowAlert(true);
+  };
+
   const handleSessionClick = (e: React.MouseEvent) => {
     e.preventDefault();
     setIsNavigating(true);
@@ -84,7 +90,9 @@ const SessionLink = ({
         {isNavigating && <Spinner />}
       </Link>
       <SessionOptionsDropdown 
+        sessionId={id}
         onDelete={deleteSession}
+        onCopySuccess={handleCopySuccess}
         className="flex-shrink-0 ml-2"
       />
     </div>
