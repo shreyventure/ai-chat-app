@@ -61,7 +61,7 @@ export default function ChatClient({
       // check for duplicates
       if (data.id && messages.some((m) => m.id === data.id)) return;
 
-      let newMessage = {
+      const newMessage = {
         id: data.id || crypto.randomUUID(),
         text: data.text,
         sender: data.sender,
@@ -79,7 +79,7 @@ export default function ChatClient({
     return () => {
       socket.off("chat-message");
     };
-  }, [sessionId]);
+  }, [sessionId, messages]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -207,7 +207,7 @@ export default function ChatClient({
                 }}
               >
                 {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                  let msg = messages[virtualRow.index];
+                  const msg = messages[virtualRow.index];
                   return (
                     <div
                       key={virtualRow.key}

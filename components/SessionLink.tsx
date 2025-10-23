@@ -10,16 +10,14 @@ import Spinner from "@/components/Spinner";
 
 const SessionLink = ({
   id,
-  createdAt,
   currentSessionId,
   title,
   deleteChatSession,
 }: {
   id: string;
-  createdAt: string;
   currentSessionId: string;
   title: string | null;
-  deleteChatSession: Function;
+  deleteChatSession: (sessionId: string) => void;
 }) => {
   const router = useRouter();
   const pathname = usePathname();

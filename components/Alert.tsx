@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export type AlertType = "success" | "error" | "warning" | "info";
 
@@ -8,7 +8,7 @@ interface AlertProps {
   type: AlertType;
   message: string;
   isVisible: boolean;
-  setIsVisible: Function;
+  setIsVisible: (visible: boolean) => void;
   duration?: number;
   onClose?: () => void;
 }
@@ -30,7 +30,7 @@ const Alert = ({
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [duration, onClose]);
+  }, [duration, onClose, setIsVisible]);
 
   const alertStyles = {
     success: "bg-green-100 border-green-400 text-green-700",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Spinner from "@/components/Spinner";
 import Alert, { AlertType } from "@/components/Alert";
@@ -10,7 +10,7 @@ export default function NewChatButton({
   addNewChatSession,
 }: {
   className: string;
-  addNewChatSession: Function;
+  addNewChatSession: (session: { id: string; createdAt: string; title: string | null }) => void;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState<boolean>(false);
@@ -30,7 +30,7 @@ export default function NewChatButton({
       });
 
       if (!res.ok) {
-        let errorText = await res.text().catch(() => "Unknown error");
+        const errorText = await res.text().catch(() => "Unknown error");
         let errorData;
         try {
           errorData = JSON.parse(errorText);

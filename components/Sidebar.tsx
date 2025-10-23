@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+
 import NewChatButton from "@/components/NewChatButton";
 import SessionLink from "@/components/SessionLink";
 import NavBar from "@/components/NavBar";
@@ -22,7 +22,7 @@ export default function Sidebar({
   currentSessionId: string;
   userId: string;
 }) {
-  const pathname = usePathname();
+
   const [chatSessions, setChatSessions] = useState(sessions);
 
   const addNewChatSession = (chatSession: Session) => {
@@ -51,7 +51,6 @@ export default function Sidebar({
             <SessionLink
               key={s.id}
               id={s.id}
-              createdAt={s.createdAt}
               currentSessionId={currentSessionId}
               title={s.title}
               deleteChatSession={deleteChatSession}
