@@ -69,6 +69,7 @@ export default function ChatClient({
 
     socket.on('disconnect', (reason: string) => {
       // Socket disconnected
+      console.log("Disconnected because:", reason);
     });
 
     socket.on('connect_error', (error: Error) => {
@@ -76,6 +77,7 @@ export default function ChatClient({
     });
 
     socket.on('reconnect', (attemptNumber: number) => {
+      console.log("Reconnecting attempt:", attemptNumber);
       socket.emit("join-session", sessionId);
     });
 
