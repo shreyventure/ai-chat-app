@@ -11,7 +11,6 @@ const SessionCreateSchema = z.object({
 const AI_USER_EMAIL = "ai@abc.com";
 
 export async function POST(req: Request) {
-  console.log("Received session creation request");
   try {
     const session = await getServerSession(authOptions);
 
@@ -40,9 +39,7 @@ export async function POST(req: Request) {
     let body;
     let title = "New Chat"; // Default title
     try {
-      console.log("Request:", req.body);
       body = await req.json();
-      console.log("Request body:", body);
       title = SessionCreateSchema.parse(body).title;
     } catch (err) {
       console.error("Failed to parse request body:", err);
@@ -60,7 +57,6 @@ export async function POST(req: Request) {
     }
 
     return await prisma.$transaction(async (tx) => {
-      console.log("Starting database transaction");
       // Create or get human user
       const dbUser = await tx.user.upsert({
         where: { email: userEmail },
@@ -113,7 +109,6 @@ export async function POST(req: Request) {
         newSession: JSON.stringify(newSession),
         message: "Chat session created successfully",
       };
-      console.log("Session created:", responseData);
       return NextResponse.json(responseData, {
         headers: { "Content-Type": "application/json" },
       });

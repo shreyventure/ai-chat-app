@@ -15,10 +15,8 @@ export default async function ChatSessionPage({
   if (!session?.user?.email) {
     redirect("/");
   }
-  console.log(session);
   const dbUser = await getOrCreateUser(session);
 
-  console.log(dbUser.id);
   const participantSessionsResponse = await prisma.chatParticipant.findMany({
     where: { userId: dbUser?.id },
     include: {
@@ -30,9 +28,7 @@ export default async function ChatSessionPage({
       },
     },
   });
-  console.log("dbUser", dbUser);
   const allSessions = participantSessionsResponse.map((p) => p.chatSession);
-  console.log("allSessions", allSessions);
   const serializedSessions = allSessions.map((s) => ({
     ...s,
     createdAt: s.createdAt.toISOString(),

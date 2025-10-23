@@ -40,7 +40,6 @@ export default function SocketHandler(
     });
 
     res.socket.server.io = io;
-    (global as any).io = io;
   }
 
   res.end();

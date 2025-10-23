@@ -10,7 +10,6 @@ const JoinChatForm = ({ userId }: { userId: string }) => {
     e.preventDefault();
     if (!chatSessionId.trim()) return;
     try {
-      console.log(userId, chatSessionId);
       setLoading(true);
       const resp = await fetch(`/api/session/add`, {
         method: "POST",

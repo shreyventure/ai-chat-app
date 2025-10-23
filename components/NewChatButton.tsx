@@ -46,9 +46,7 @@ export default function NewChatButton({
       }
 
       data = await res.json();
-      console.log("New session created:", data);
       if (data?.id) {
-        console.log("Navigating to:", `/chat/${data.id}`);
         setAlertType("success");
         setAlertMessage("New chat created.");
         setShowAlert(true);

@@ -35,7 +35,6 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    console.log(id);
     const session = await prisma.chatSession.delete({
       where: { id },
     });

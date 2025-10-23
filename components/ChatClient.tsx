@@ -64,27 +64,22 @@ export default function ChatClient({
     });
     
     socket.on('connect', () => {
-      console.log('Socket connected successfully:', socket.id);
       socket.emit("join-session", sessionId);
     });
 
     socket.on('disconnect', (reason: any) => {
-      console.log('Socket disconnected:', reason);
+      // Socket disconnected
     });
 
     socket.on('connect_error', (error: any) => {
       console.error('Socket connection error:', error);
-      console.log('Continuing without real-time features...');
     });
 
     socket.on('reconnect', (attemptNumber: any) => {
-      console.log('Socket reconnected after', attemptNumber, 'attempts');
       socket.emit("join-session", sessionId);
     });
 
     socket.on("chat-message", (data: any) => {
-      console.log('Received socket message:', data);
-      
       const newMessage = {
         id: data.id || crypto.randomUUID(),
         text: data.text,
@@ -100,7 +95,6 @@ export default function ChatClient({
       setMessages((prev) => {
         // Check for duplicates by ID first
         if (data.id && prev.some((m) => m.id === data.id)) {
-          console.log('Duplicate message detected by ID, skipping');
           return prev;
         }
         
@@ -108,18 +102,15 @@ export default function ChatClient({
         if (data.sender === "ai") {
           const recentAIMessages = prev.filter(m => m.sender === "ai").slice(-3); // Check last 3 AI messages
           if (recentAIMessages.some(m => m.text === data.text)) {
-            console.log('Duplicate AI message detected by content, skipping');
             return prev;
           }
         }
         
         // For user messages, only add if it's from another user
         if (data.sender === "user" && data.user?.email === user.email) {
-          console.log('Skipping own user message (added optimistically)');
-          return prev;
+          return prev; // Skip own messages as they're added optimistically
         }
         
-        console.log('Adding new message from socket:', newMessage);
         return [...prev, newMessage];
       });
     });
@@ -153,9 +144,6 @@ export default function ChatClient({
         sessionId,
         message: userMessage,
       });
-      console.log("User message emitted via socket");
-    } else {
-      console.log("Socket not connected, user message added locally only");
     }
 
     let res;
@@ -203,7 +191,6 @@ export default function ChatClient({
       setMessages((prev) => {
         // Check if this AI response already exists to prevent duplicates
         if (prev.some(m => m.text === data.reply && m.sender === "ai")) {
-          console.log('AI response already exists, skipping duplicate');
           return prev;
         }
         return [...prev, aiMessage];
@@ -215,9 +202,6 @@ export default function ChatClient({
           sessionId,
           message: aiMessage,
         });
-        console.log("AI response emitted via socket for other users");
-      } else {
-        console.log("Socket not connected, AI response added locally only");
       }
     } catch (error) {
       console.error("Request failed:", error);

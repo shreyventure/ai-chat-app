@@ -38,7 +38,6 @@ const SessionLink = ({
         setAlertType("success");
         setAlertMessage("Chat session was deleted!");
         setShowAlert(true);
-        console.log("pathname:", pathname);
         deleteChatSession(id);
 
         if (pathname === `/chat/${id}`) router.push("/chat");
