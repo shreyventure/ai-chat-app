@@ -18,12 +18,15 @@ export default function SocketHandler(
       path: "/api/socketio",
       cors: {
         origin: "*",
-        methods: ["GET", "POST"]
+        methods: ["GET", "POST"],
+        credentials: false
       },
-      transports: ['websocket'], // WebSocket only
-      allowEIO3: true, // Allow Engine.IO v3 clients
+      transports: ['websocket', 'polling'], // Support both for Vercel compatibility
+      allowEIO3: true,
       pingTimeout: 60000,
-      pingInterval: 25000
+      pingInterval: 25000,
+      upgradeTimeout: 30000,
+      maxHttpBufferSize: 1e6
     });
 
     io.on("connection", (socket) => {

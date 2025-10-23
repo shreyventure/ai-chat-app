@@ -56,86 +56,116 @@ export default function ChatClient({
   }, [messages]);
 
   useEffect(() => {
-    // Initialize socket connection with WebSocket only
-    socket = io(undefined, { 
+    // Initialize socket connection with fallback for production
+    socket = io(undefined, {
       path: "/api/socketio",
-      transports: ['websocket'], // WebSocket only
+      transports: ["websocket", "polling"], // WebSocket first, polling fallback for Vercel
       timeout: 20000,
       forceNew: true,
-      upgrade: false, // Disable transport upgrades
-      rememberUpgrade: false
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
-    
-    socket.on('connect', () => {
-      console.log('WebSocket connected successfully');
+
+    socket.on("connect", () => {
+      console.log("Socket connected successfully via", socket.io.engine.transport.name);
       setIsSocketConnected(true);
       socket.emit("join-session", sessionId);
-    });
-
-    socket.on('disconnect', (reason: string) => {
-      console.log('WebSocket disconnected:', reason);
-      setIsSocketConnected(false);
-      if (reason === 'io server disconnect') {
-        // Server disconnected, reconnect manually
-        socket.connect();
-      }
-    });
-
-    socket.on('connect_error', (error: Error) => {
-      console.error('WebSocket connection error:', error);
-      // Retry connection after a delay
-      setTimeout(() => {
-        if (!socket.connected) {
-          socket.connect();
-        }
-      }, 5000);
-    });
-
-    socket.on('reconnect', (attemptNumber: number) => {
-      console.log('WebSocket reconnected after', attemptNumber, 'attempts');
-      setIsSocketConnected(true);
-      socket.emit("join-session", sessionId);
-    });
-
-    socket.on('reconnect_error', (error: Error) => {
-      console.error('WebSocket reconnection failed:', error);
-    });
-
-    socket.on("chat-message", (data: { id?: string; text: string; sender: string; user?: User }) => {
-      const newMessage = {
-        id: data.id || crypto.randomUUID(),
-        text: data.text,
-        sender: data.sender,
-        user: data.user || {
-          email: "ai@abc.com",
-          image:
-            "https://lh3.googleusercontent.com/a/ACg8ocJ6eljr_dL_-0H1zKrpFlamsuKKa3uS7SYQtsjjC7CTDn12fQ=s96-c",
-          name: "AI Assistant",
-        },
-      };
-
-      setMessages((prev) => {
-        // Check for duplicates by ID first
-        if (data.id && prev.some((m) => m.id === data.id)) {
-          return prev;
-        }
-        
-        // For AI messages, check for content duplicates (since AI responses might not have consistent IDs)
-        if (data.sender === "ai") {
-          const recentAIMessages = prev.filter(m => m.sender === "ai").slice(-3); // Check last 3 AI messages
-          if (recentAIMessages.some(m => m.text === data.text)) {
-            return prev;
-          }
-        }
-        
-        // For user messages, only add if it's from another user
-        if (data.sender === "user" && data.user?.email === user.email) {
-          return prev; // Skip own messages as they're added optimistically
-        }
-        
-        return [...prev, newMessage];
+      
+      // Listen for transport upgrades
+      socket.io.engine.on("upgrade", () => {
+        console.log("Upgraded to", socket.io.engine.transport.name);
       });
     });
+
+    socket.on("disconnect", (reason: string) => {
+      console.log("Socket disconnected:", reason);
+      setIsSocketConnected(false);
+      
+      // Don't auto-reconnect on certain reasons
+      if (reason === "io server disconnect" || reason === "io client disconnect") {
+        return;
+      }
+      
+      // Auto-reconnect for other reasons
+      setTimeout(() => {
+        if (!socket.connected) {
+          console.log("Attempting to reconnect...");
+          socket.connect();
+        }
+      }, 2000);
+    });
+
+    socket.on("connect_error", (error: Error) => {
+      console.error("Socket connection error:", error);
+      setIsSocketConnected(false);
+      
+      // Try to reconnect after a delay
+      setTimeout(() => {
+        if (!socket.connected) {
+          console.log("Retrying connection...");
+          socket.connect();
+        }
+      }, 3000);
+    });
+
+    socket.on("reconnect", (attemptNumber: number) => {
+      console.log("Socket reconnected after", attemptNumber, "attempts");
+      setIsSocketConnected(true);
+      socket.emit("join-session", sessionId);
+    });
+
+    socket.on("reconnect_error", (error: Error) => {
+      console.error("Socket reconnection failed:", error);
+      setIsSocketConnected(false);
+    });
+
+    socket.on("reconnect_failed", () => {
+      console.error("Socket reconnection failed permanently");
+      setIsSocketConnected(false);
+    });
+
+    socket.on(
+      "chat-message",
+      (data: { id?: string; text: string; sender: string; user?: User }) => {
+        const newMessage = {
+          id: data.id || crypto.randomUUID(),
+          text: data.text,
+          sender: data.sender,
+          user: data.user || {
+            email: "ai@abc.com",
+            image:
+              "https://lh3.googleusercontent.com/a/ACg8ocJ6eljr_dL_-0H1zKrpFlamsuKKa3uS7SYQtsjjC7CTDn12fQ=s96-c",
+            name: "AI Assistant",
+          },
+        };
+
+        setMessages((prev) => {
+          // Check for duplicates by ID first
+          if (data.id && prev.some((m) => m.id === data.id)) {
+            return prev;
+          }
+
+          // For AI messages, check for content duplicates (since AI responses might not have consistent IDs)
+          if (data.sender === "ai") {
+            const recentAIMessages = prev
+              .filter((m) => m.sender === "ai")
+              .slice(-3); // Check last 3 AI messages
+            if (recentAIMessages.some((m) => m.text === data.text)) {
+              return prev;
+            }
+          }
+
+          // For user messages, only add if it's from another user
+          if (data.sender === "user" && data.user?.email === user.email) {
+            return prev; // Skip own messages as they're added optimistically
+          }
+
+          return [...prev, newMessage];
+        });
+      }
+    );
 
     return () => {
       socket.off("chat-message");
@@ -168,7 +198,9 @@ export default function ChatClient({
       });
       console.log("User message sent via WebSocket");
     } else {
-      console.log("WebSocket not connected, message will only be visible locally");
+      console.log(
+        "WebSocket not connected, message will only be visible locally"
+      );
     }
 
     let res;
@@ -198,7 +230,7 @@ export default function ChatClient({
       }
       const data = await res.json();
       setIsLoadingMessage(false);
-      
+
       // Add AI response directly to UI (fallback for when socket fails)
       const aiMessage = {
         id: crypto.randomUUID(),
@@ -215,12 +247,12 @@ export default function ChatClient({
       // Add AI message to local state immediately
       setMessages((prev) => {
         // Check if this AI response already exists to prevent duplicates
-        if (prev.some(m => m.text === data.reply && m.sender === "ai")) {
+        if (prev.some((m) => m.text === data.reply && m.sender === "ai")) {
           return prev;
         }
         return [...prev, aiMessage];
       });
-      
+
       // Emit AI response via WebSocket for other users in the session (if connected)
       if (socket && socket.connected && isSocketConnected) {
         socket.emit("chat-message", {
@@ -229,7 +261,9 @@ export default function ChatClient({
         });
         console.log("AI response sent via WebSocket");
       } else {
-        console.log("WebSocket not connected, AI response will only be visible locally");
+        console.log(
+          "WebSocket not connected, AI response will only be visible locally"
+        );
       }
     } catch (error) {
       console.error("Request failed:", error);
@@ -257,9 +291,28 @@ export default function ChatClient({
       <div className="flex-shrink-0 border-b border-gray-700 bg-[#1f2127] flex items-center justify-between">
         <SessionTitleEditor initialTitle={title} sessionId={sessionId} />
         <div className="px-4 py-2">
-          <div className={`flex items-center gap-2 text-xs ${isSocketConnected ? 'text-green-400' : 'text-red-400'}`}>
-            <div className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-            {isSocketConnected ? 'Connected' : 'Disconnected'}
+          <div
+            className={`flex items-center gap-2 text-xs ${
+              isSocketConnected ? "text-green-400" : "text-red-400"
+            }`}
+          >
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isSocketConnected ? "bg-green-400" : "bg-red-400"
+              }`}
+            ></div>
+            {isSocketConnected ? "Connected" : "Disconnected"}
+            {!isSocketConnected && (
+              <button
+                onClick={() => {
+                  console.log("Manual reconnection attempt");
+                  socket.connect();
+                }}
+                className="ml-2 text-xs text-blue-400 hover:text-blue-300 underline"
+              >
+                Retry
+              </button>
+            )}
           </div>
         </div>
       </div>
