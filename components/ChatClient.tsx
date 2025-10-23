@@ -6,7 +6,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { io } from "socket.io-client";
 import Alert, { AlertType } from "@/components/Alert";
 
-let socket: any;
+let socket: ReturnType<typeof io>;
 
 interface User {
   name?: string | null | undefined;
@@ -67,19 +67,19 @@ export default function ChatClient({
       socket.emit("join-session", sessionId);
     });
 
-    socket.on('disconnect', (reason: any) => {
+    socket.on('disconnect', (reason: string) => {
       // Socket disconnected
     });
 
-    socket.on('connect_error', (error: any) => {
+    socket.on('connect_error', (error: Error) => {
       console.error('Socket connection error:', error);
     });
 
-    socket.on('reconnect', (attemptNumber: any) => {
+    socket.on('reconnect', (attemptNumber: number) => {
       socket.emit("join-session", sessionId);
     });
 
-    socket.on("chat-message", (data: any) => {
+    socket.on("chat-message", (data: { id?: string; text: string; sender: string; user?: User }) => {
       const newMessage = {
         id: data.id || crypto.randomUUID(),
         text: data.text,

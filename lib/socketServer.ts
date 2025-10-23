@@ -26,11 +26,11 @@ export default function SocketHandler(
     io.on("connection", (socket) => {
       console.log("User connected:", socket.id);
 
-      socket.on("join-session", (sessionId) => {
+      socket.on("join-session", (sessionId: string) => {
         socket.join(sessionId);
       });
 
-      socket.on("chat-message", ({ sessionId, message }) => {
+      socket.on("chat-message", ({ sessionId, message }: { sessionId: string; message: unknown }) => {
         io.to(sessionId).emit("chat-message", message); // Broadcast to all including sender
       });
 
