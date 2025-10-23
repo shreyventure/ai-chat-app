@@ -16,6 +16,11 @@ export default function SocketHandler(
   if (!res.socket.server.io) {
     const io = new IOServer(res.socket.server, {
       path: "/api/socketio",
+      cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+      },
+      transports: ['websocket', 'polling']
     });
 
     io.on("connection", (socket) => {

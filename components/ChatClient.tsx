@@ -6,7 +6,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { io } from "socket.io-client";
 import Alert, { AlertType } from "@/components/Alert";
 
-const socket = io(undefined, { path: "/api/socketio" });
+let socket: any;
 
 interface User {
   name?: string | null | undefined;
@@ -55,12 +55,26 @@ export default function ChatClient({
   }, [messages]);
 
   useEffect(() => {
-    socket.emit("join-session", sessionId);
+    // Initialize socket connection
+    socket = io(undefined, { 
+      path: "/api/socketio",
+      transports: ['websocket', 'polling']
+    });
+    
+    socket.on('connect', () => {
+      console.log('Socket connected:', socket.id);
+      socket.emit("join-session", sessionId);
+    });
 
-    socket.on("chat-message", (data) => {
-      // check for duplicates
-      if (data.id && messages.some((m) => m.id === data.id)) return;
+    socket.on('disconnect', () => {
+      console.log('Socket disconnected');
+    });
 
+    socket.on('connect_error', (error: any) => {
+      console.error('Socket connection error:', error);
+    });
+
+    socket.on("chat-message", (data: any) => {
       const newMessage = {
         id: data.id || crypto.randomUUID(),
         text: data.text,
@@ -73,32 +87,46 @@ export default function ChatClient({
         },
       };
 
-      setMessages((prev) => [...prev, newMessage]);
+      setMessages((prev) => {
+        // Check for duplicates
+        if (prev.some((m) => m.id === data.id)) return prev;
+        
+        // For user messages, only add if it's from another user
+        if (data.sender === "user" && data.user?.email === user.email) {
+          return prev; // Skip own messages as they're added optimistically
+        }
+        
+        return [...prev, newMessage];
+      });
     });
 
     return () => {
       socket.off("chat-message");
+      socket.disconnect();
     };
-  }, [sessionId, messages]);
+  }, [sessionId, user.email]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
+    const messageText = input.trim();
     const userMessage = {
       id: crypto.randomUUID(),
-      text: input,
+      text: messageText,
       sender: "user" as const,
       user: user || {},
     };
 
-    const messageWithId = { ...userMessage, id: crypto.randomUUID() };
+    // Optimistically add user message to UI
+    setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoadingMessage(true);
 
+    // Emit user message via socket for other users
     socket.emit("chat-message", {
       sessionId,
-      message: { ...messageWithId, text: input, sender: "user", user },
+      message: userMessage,
     });
 
     let res;
@@ -111,7 +139,7 @@ export default function ChatClient({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          message: input.trim(),
+          message: messageText,
           sessionId: sessionId,
         }),
       });
@@ -140,12 +168,12 @@ export default function ChatClient({
         },
       };
 
-      const aiMessageWithId = { ...aiMessage, id: crypto.randomUUID() };
       setIsLoadingMessage(false);
 
+      // Emit AI message via socket for all users (including self)
       socket.emit("chat-message", {
         sessionId,
-        message: { ...aiMessageWithId, text: data.reply, sender: "ai" },
+        message: aiMessage,
       });
     } catch (error) {
       console.error("Request failed:", error);
