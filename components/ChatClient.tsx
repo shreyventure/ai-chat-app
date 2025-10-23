@@ -55,26 +55,36 @@ export default function ChatClient({
   }, [messages]);
 
   useEffect(() => {
-    // Initialize socket connection
+    // Initialize socket connection with better error handling
     socket = io(undefined, { 
       path: "/api/socketio",
-      transports: ['websocket', 'polling']
+      transports: ['polling', 'websocket'], // Try polling first, then websocket
+      timeout: 20000,
+      forceNew: true
     });
     
     socket.on('connect', () => {
-      console.log('Socket connected:', socket.id);
+      console.log('Socket connected successfully:', socket.id);
       socket.emit("join-session", sessionId);
     });
 
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected');
+    socket.on('disconnect', (reason: any) => {
+      console.log('Socket disconnected:', reason);
     });
 
     socket.on('connect_error', (error: any) => {
       console.error('Socket connection error:', error);
+      console.log('Continuing without real-time features...');
+    });
+
+    socket.on('reconnect', (attemptNumber: any) => {
+      console.log('Socket reconnected after', attemptNumber, 'attempts');
+      socket.emit("join-session", sessionId);
     });
 
     socket.on("chat-message", (data: any) => {
+      console.log('Received socket message:', data);
+      
       const newMessage = {
         id: data.id || crypto.randomUUID(),
         text: data.text,
@@ -83,19 +93,33 @@ export default function ChatClient({
           email: "ai@abc.com",
           image:
             "https://lh3.googleusercontent.com/a/ACg8ocJ6eljr_dL_-0H1zKrpFlamsuKKa3uS7SYQtsjjC7CTDn12fQ=s96-c",
-          name: "Ai",
+          name: "AI Assistant",
         },
       };
 
       setMessages((prev) => {
-        // Check for duplicates
-        if (prev.some((m) => m.id === data.id)) return prev;
+        // Check for duplicates by ID first
+        if (data.id && prev.some((m) => m.id === data.id)) {
+          console.log('Duplicate message detected by ID, skipping');
+          return prev;
+        }
+        
+        // For AI messages, check for content duplicates (since AI responses might not have consistent IDs)
+        if (data.sender === "ai") {
+          const recentAIMessages = prev.filter(m => m.sender === "ai").slice(-3); // Check last 3 AI messages
+          if (recentAIMessages.some(m => m.text === data.text)) {
+            console.log('Duplicate AI message detected by content, skipping');
+            return prev;
+          }
+        }
         
         // For user messages, only add if it's from another user
         if (data.sender === "user" && data.user?.email === user.email) {
-          return prev; // Skip own messages as they're added optimistically
+          console.log('Skipping own user message (added optimistically)');
+          return prev;
         }
         
+        console.log('Adding new message from socket:', newMessage);
         return [...prev, newMessage];
       });
     });
@@ -123,11 +147,16 @@ export default function ChatClient({
     setInput("");
     setIsLoadingMessage(true);
 
-    // Emit user message via socket for other users
-    socket.emit("chat-message", {
-      sessionId,
-      message: userMessage,
-    });
+    // Emit user message via socket for other users (if connected)
+    if (socket && socket.connected) {
+      socket.emit("chat-message", {
+        sessionId,
+        message: userMessage,
+      });
+      console.log("User message emitted via socket");
+    } else {
+      console.log("Socket not connected, user message added locally only");
+    }
 
     let res;
     try {
@@ -155,7 +184,9 @@ export default function ChatClient({
         return;
       }
       const data = await res.json();
-
+      setIsLoadingMessage(false);
+      
+      // Add AI response directly to UI (fallback for when socket fails)
       const aiMessage = {
         id: crypto.randomUUID(),
         text: data.reply,
@@ -164,17 +195,30 @@ export default function ChatClient({
           email: "ai@abc.com",
           image:
             "https://lh3.googleusercontent.com/a/ACg8ocJ6eljr_dL_-0H1zKrpFlamsuKKa3uS7SYQtsjjC7CTDn12fQ=s96-c",
-          name: "Ai",
+          name: "AI Assistant",
         },
       };
 
-      setIsLoadingMessage(false);
-
-      // Emit AI message via socket for all users (including self)
-      socket.emit("chat-message", {
-        sessionId,
-        message: aiMessage,
+      // Add AI message to local state immediately
+      setMessages((prev) => {
+        // Check if this AI response already exists to prevent duplicates
+        if (prev.some(m => m.text === data.reply && m.sender === "ai")) {
+          console.log('AI response already exists, skipping duplicate');
+          return prev;
+        }
+        return [...prev, aiMessage];
       });
+      
+      // Emit AI response via socket for other users in the session (if socket is connected)
+      if (socket && socket.connected) {
+        socket.emit("chat-message", {
+          sessionId,
+          message: aiMessage,
+        });
+        console.log("AI response emitted via socket for other users");
+      } else {
+        console.log("Socket not connected, AI response added locally only");
+      }
     } catch (error) {
       console.error("Request failed:", error);
       setAlertType("error");

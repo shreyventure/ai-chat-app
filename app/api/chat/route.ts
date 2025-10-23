@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { z } from "zod";
+import { Server as IOServer } from "socket.io";
 
 import { createMessage, getAllSessionMessages } from "@/services/chatService";
 import { getGroqChatCompletion } from "@/services/groqService";
@@ -85,6 +86,8 @@ export async function POST(req: Request) {
       userId: aiUser.id,
       sessionId: sessionId,
     });
+
+    // AI response will be handled by the client-side after receiving the API response
 
     return NextResponse.json({ reply: aiReply });
   } catch (error) {
