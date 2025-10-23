@@ -39,6 +39,7 @@ export default function ChatClient({
   const [showAlert, setShowAlert] = useState<boolean>(false);
   const [alertType, setAlertType] = useState<AlertType>("success");
   const [alertMessage, setAlertMessage] = useState<string>("");
+  const [isSocketConnected, setIsSocketConnected] = useState<boolean>(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const parentRef = useRef<HTMLDivElement>(null);
@@ -55,30 +56,49 @@ export default function ChatClient({
   }, [messages]);
 
   useEffect(() => {
-    // Initialize socket connection with better error handling
+    // Initialize socket connection with WebSocket only
     socket = io(undefined, { 
       path: "/api/socketio",
-      transports: ['polling', 'websocket'], // Try polling first, then websocket
+      transports: ['websocket'], // WebSocket only
       timeout: 20000,
-      forceNew: true
+      forceNew: true,
+      upgrade: false, // Disable transport upgrades
+      rememberUpgrade: false
     });
     
     socket.on('connect', () => {
+      console.log('WebSocket connected successfully');
+      setIsSocketConnected(true);
       socket.emit("join-session", sessionId);
     });
 
     socket.on('disconnect', (reason: string) => {
-      // Socket disconnected
-      console.log("Disconnected because:", reason);
+      console.log('WebSocket disconnected:', reason);
+      setIsSocketConnected(false);
+      if (reason === 'io server disconnect') {
+        // Server disconnected, reconnect manually
+        socket.connect();
+      }
     });
 
     socket.on('connect_error', (error: Error) => {
-      console.error('Socket connection error:', error);
+      console.error('WebSocket connection error:', error);
+      // Retry connection after a delay
+      setTimeout(() => {
+        if (!socket.connected) {
+          socket.connect();
+        }
+      }, 5000);
     });
 
     socket.on('reconnect', (attemptNumber: number) => {
-      console.log("Reconnecting attempt:", attemptNumber);
+      console.log('WebSocket reconnected after', attemptNumber, 'attempts');
+      setIsSocketConnected(true);
       socket.emit("join-session", sessionId);
+    });
+
+    socket.on('reconnect_error', (error: Error) => {
+      console.error('WebSocket reconnection failed:', error);
     });
 
     socket.on("chat-message", (data: { id?: string; text: string; sender: string; user?: User }) => {
@@ -140,12 +160,15 @@ export default function ChatClient({
     setInput("");
     setIsLoadingMessage(true);
 
-    // Emit user message via socket for other users (if connected)
-    if (socket && socket.connected) {
+    // Emit user message via WebSocket for other users (if connected)
+    if (socket && socket.connected && isSocketConnected) {
       socket.emit("chat-message", {
         sessionId,
         message: userMessage,
       });
+      console.log("User message sent via WebSocket");
+    } else {
+      console.log("WebSocket not connected, message will only be visible locally");
     }
 
     let res;
@@ -198,12 +221,15 @@ export default function ChatClient({
         return [...prev, aiMessage];
       });
       
-      // Emit AI response via socket for other users in the session (if socket is connected)
-      if (socket && socket.connected) {
+      // Emit AI response via WebSocket for other users in the session (if connected)
+      if (socket && socket.connected && isSocketConnected) {
         socket.emit("chat-message", {
           sessionId,
           message: aiMessage,
         });
+        console.log("AI response sent via WebSocket");
+      } else {
+        console.log("WebSocket not connected, AI response will only be visible locally");
       }
     } catch (error) {
       console.error("Request failed:", error);
@@ -228,8 +254,14 @@ export default function ChatClient({
         onClose={() => setShowAlert(false)}
       />
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-gray-700 bg-[#1f2127]">
+      <div className="flex-shrink-0 border-b border-gray-700 bg-[#1f2127] flex items-center justify-between">
         <SessionTitleEditor initialTitle={title} sessionId={sessionId} />
+        <div className="px-4 py-2">
+          <div className={`flex items-center gap-2 text-xs ${isSocketConnected ? 'text-green-400' : 'text-red-400'}`}>
+            <div className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
+            {isSocketConnected ? 'Connected' : 'Disconnected'}
+          </div>
+        </div>
       </div>
 
       {/* Messages area */}

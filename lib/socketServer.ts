@@ -20,7 +20,10 @@ export default function SocketHandler(
         origin: "*",
         methods: ["GET", "POST"]
       },
-      transports: ['websocket', 'polling']
+      transports: ['websocket'], // WebSocket only
+      allowEIO3: true, // Allow Engine.IO v3 clients
+      pingTimeout: 60000,
+      pingInterval: 25000
     });
 
     io.on("connection", (socket) => {
